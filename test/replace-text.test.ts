@@ -5,7 +5,7 @@ import {
   isRegexPattern,
   isValidExtension,
   readMappingFile,
-} from './replace-text.ts';
+} from '../src/replace-text.ts';
 import fs from 'fs';
 
 vi.mock('fs');
