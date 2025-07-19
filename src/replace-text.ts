@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 
 export type MappingRule = {
   from: RegExp | string;
@@ -6,37 +7,51 @@ export type MappingRule = {
 };
 
 export function isRegexPattern(str: string): boolean {
-  return /^\/.*\/[gimsuy]*$/.test(str);
+  return /^\/.+\/[gimsuy]*$/.test(str);
 }
 
 export function parsePattern(from: string): RegExp | string {
   if (isRegexPattern(from)) {
-    const match = from.match(/^\/(.*)\/([gimsuy]*)$/);
-    if (!match) throw new Error(`Invalid regex pattern: ${from}`);
+    const match = from.match(/^\/(.*)\/([gimsuy]*)$/)!;
     const [, pattern, flags] = match;
-    return new RegExp(pattern, flags);
+
+    try {
+      return new RegExp(pattern, flags);
+    } catch (err) {
+      console.warn(
+        `Warning: Regex rejected, treating as string literal.\n  Pattern: ${from}\n  Reason: ${(err as Error).message}`,
+      );
+    }
   }
-  return from;
+
+  return from; // treat all others as literals, even if starting with '/'
 }
 
 export function readMappingFile(filePath: string): MappingRule[] {
   const fileContents = fs.readFileSync(filePath, 'utf-8');
-  const lines = fileContents.split(/\r?\n/).filter(Boolean);
 
-  return lines.map((line, i) => {
-    const [rawFrom, ...rest] = line.split('=>');
-    if (!rawFrom || rest.length === 0)
-      throw new Error(`Invalid mapping at line ${i + 1}: ${line}`);
+  return fileContents
+    .split(/\r?\n/)
+    .filter((line) => line.trim() && !/^\s*#/.test(line))
+    .map((line, i) => {
+      // Strip inline comments
+      const [mappingPart] = line.split('#');
+      const [rawFrom, ...rest] = mappingPart.split('=>');
 
-    const from = parsePattern(rawFrom.trim());
-    const to = rest.join('=>').trim();
-    return { from, to };
-  });
+      if (!rawFrom || rest.length === 0) {
+        throw new Error(`Invalid mapping at line ${i + 1}: ${line}`);
+      }
+
+      const from = parsePattern(rawFrom.trim());
+      const to = rest.join('=>').trim();
+
+      return { from, to };
+    });
 }
 
 export function applyReplacements(
   content: string,
-  rules: MappingRule[]
+  rules: MappingRule[],
 ): string {
   return rules.reduce((acc, { from, to }) => {
     if (from instanceof RegExp) {
@@ -45,4 +60,8 @@ export function applyReplacements(
       return acc.split(from).join(to);
     }
   }, content);
+}
+
+export function isValidExtension(filePath: string): boolean {
+  return path.extname(filePath).toLowerCase() === '.txt';
 }
