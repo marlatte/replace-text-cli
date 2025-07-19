@@ -1,8 +1,10 @@
 {
   "extends": "@tsconfig/node-lts/tsconfig.json",
   "compilerOptions": {
-    "allowJs": true
+    "allowJs": true,
+    "verbatimModuleSyntax": true,
+    "strict": true
   },
-  "include": ["**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }
