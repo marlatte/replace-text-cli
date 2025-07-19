@@ -1,0 +1,26 @@
+{
+  "name": "replace-text-cli",
+  "version": "0.1.0",
+  "description": "A text replacement command line utility with dry-run, mapping, and regex support.",
+  "type": "module",
+  "main": "cli.js",
+  "bin": {
+    "replace-text": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "vitest"
+  },
+  "keywords": [
+    "text",
+    "replace",
+    "cli",
+    "regex",
+    "mapping",
+    "automation"
+  ],
+  "author": "marlatte",
+  "license": "MIT",
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}
