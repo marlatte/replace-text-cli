@@ -1,7 +1,7 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
-import { defineConfig } from 'eslint/config';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import vitest from '@vitest/eslint-plugin';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import stylistic from '@stylistic/eslint-plugin';
@@ -25,4 +25,5 @@ export default defineConfig([
     ...vitest.configs.recommended,
   },
   tseslint.configs.recommended,
+  globalIgnores(['dist/']),
 ]);

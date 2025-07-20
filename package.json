@@ -3,16 +3,18 @@
   "version": "0.1.0",
   "description": "A text replacement command line utility with dry-run, mapping, and regex support.",
   "type": "module",
-  "main": "cli.js",
+  "main": "dist/cli.js",
   "bin": {
-    "replace-text": "./bin/cli.js"
+    "replace-text": "dist/cli.js"
   },
   "scripts": {
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "prelint": "tsc --noEmit",
     "lint": "eslint --report-unused-disable-directives",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build": "tsup",
+    "dev": "tsup --watch --onSuccess \"node dist/cli.js\""
   },
   "keywords": [
     "text",
@@ -37,6 +39,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.37.0",
     "vitest": "^3.2.4"
