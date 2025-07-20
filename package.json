@@ -49,5 +49,8 @@
       "eslint --fix --report-unused-disable-directives",
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "commander": "^14.0.0"
   }
 }
