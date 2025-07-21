@@ -10,7 +10,7 @@ export function isRegexPattern(str: string): boolean {
   return /^\/.+\/[gimsuy]*$/.test(str);
 }
 
-export function parsePattern(from: string): RegExp | string {
+export function parseMapPattern(from: string): RegExp | string {
   if (isRegexPattern(from)) {
     const match = from.match(/^\/(.*)\/([gimsuy]*)$/)!;
     const [, pattern, flags] = match;
@@ -27,7 +27,7 @@ export function parsePattern(from: string): RegExp | string {
   return from; // treat all others as literals, even if starting with '/'
 }
 
-export function readMappingFile(filePath: string): MappingRule[] {
+export function readMapFile(filePath: string): MappingRule[] {
   const fileContents = fs.readFileSync(filePath, 'utf-8');
 
   return fileContents
@@ -42,7 +42,7 @@ export function readMappingFile(filePath: string): MappingRule[] {
         throw new Error(`Invalid mapping at line ${i + 1}: ${line}`);
       }
 
-      const from = parsePattern(rawFrom.trim());
+      const from = parseMapPattern(rawFrom.trim());
       const to = rest.join('=>').trim();
 
       return { from, to };
@@ -62,6 +62,6 @@ export function applyReplacements(
   }, content);
 }
 
-export function isValidExtension(filePath: string): boolean {
+export function isValidMapExtension(filePath: string): boolean {
   return path.extname(filePath).toLowerCase() === '.txt';
 }

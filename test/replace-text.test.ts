@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import {
   applyReplacements,
-  parsePattern,
+  parseMapPattern,
   isRegexPattern,
-  isValidExtension,
-  readMappingFile,
+  isValidMapExtension,
+  readMapFile,
 } from '../src/replace-text.ts';
 import fs from 'fs';
 
@@ -21,9 +21,9 @@ describe('isRegexPattern', () => {
   });
 });
 
-describe('parsePattern', () => {
+describe('parseMapPattern', () => {
   it('parses valid regex patterns correctly', () => {
-    const result = parsePattern('/blue/gi');
+    const result = parseMapPattern('/blue/gi');
     expect(result).toBeInstanceOf(RegExp);
     if (result instanceof RegExp) {
       expect(result.source).toBe('blue');
@@ -34,7 +34,7 @@ describe('parsePattern', () => {
   it('warns and falls back on invalid regex syntax inside valid regex delimiters', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const result = parsePattern('/bad-regex(/i');
+    const result = parseMapPattern('/bad-regex(/i');
     expect(result).toBe('/bad-regex(/i');
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Warning: Regex rejected'),
@@ -45,19 +45,19 @@ describe('parsePattern', () => {
 
   it('treats strings starting with / but missing closing slash as literal strings', () => {
     const input = '/path/to/file';
-    const result = parsePattern(input);
+    const result = parseMapPattern(input);
     expect(result).toBe(input);
   });
 
   it('treats strings starting with / but malformed as literal strings', () => {
     const input = '/bad-regex(/i';
-    const result = parsePattern(input);
+    const result = parseMapPattern(input);
     expect(result).toBe(input);
   });
 
   it('treats normal strings as literals', () => {
     const input = 'oklch(0.205 0 0)';
-    const result = parsePattern(input);
+    const result = parseMapPattern(input);
     expect(result).toBe(input);
   });
 });
@@ -113,28 +113,28 @@ describe('applyReplacements', () => {
   });
 });
 
-describe('isValidExtension', () => {
+describe('isValidMapExtension', () => {
   it('returns true for .txt files', () => {
-    expect(isValidExtension('file.txt')).toBe(true);
-    expect(isValidExtension('/some/path/to/file.txt')).toBe(true);
+    expect(isValidMapExtension('file.txt')).toBe(true);
+    expect(isValidMapExtension('/some/path/to/file.txt')).toBe(true);
   });
 
   it('returns false for other file types', () => {
-    expect(isValidExtension('file.md')).toBe(false);
-    expect(isValidExtension('file.env')).toBe(false);
-    expect(isValidExtension('file.conf')).toBe(false);
-    expect(isValidExtension('file')).toBe(false);
-    expect(isValidExtension('file.')).toBe(false);
-    expect(isValidExtension('.txt')).toBe(false);
+    expect(isValidMapExtension('file.md')).toBe(false);
+    expect(isValidMapExtension('file.env')).toBe(false);
+    expect(isValidMapExtension('file.conf')).toBe(false);
+    expect(isValidMapExtension('file')).toBe(false);
+    expect(isValidMapExtension('file.')).toBe(false);
+    expect(isValidMapExtension('.txt')).toBe(false);
   });
 
   it('is case-insensitive', () => {
-    expect(isValidExtension('file.TXT')).toBe(true);
-    expect(isValidExtension('file.TxT')).toBe(true);
+    expect(isValidMapExtension('file.TXT')).toBe(true);
+    expect(isValidMapExtension('file.TxT')).toBe(true);
   });
 });
 
-describe('readMappingFile', () => {
+describe('readMapFile', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -142,7 +142,7 @@ describe('readMappingFile', () => {
   it('parses a simple string mapping', () => {
     mockReadFileSync.mockReturnValue('red => var(--red)');
 
-    const result = readMappingFile('fake/path');
+    const result = readMapFile('fake/path');
 
     expect(result).toEqual([{ from: 'red', to: 'var(--red)' }]);
   });
@@ -150,7 +150,7 @@ describe('readMappingFile', () => {
   it('parses a regex mapping', () => {
     mockReadFileSync.mockReturnValue('/blue/gi => var(--blue)');
 
-    const result = readMappingFile('fake/path');
+    const result = readMapFile('fake/path');
 
     expect(result).toEqual([{ from: /blue/gi, to: 'var(--blue)' }]);
   });
@@ -164,7 +164,7 @@ describe('readMappingFile', () => {
     `.trim(),
     );
 
-    const result = readMappingFile('fake/path');
+    const result = readMapFile('fake/path');
 
     expect(result).toEqual([
       { from: 'red', to: 'var(--red)' },
@@ -182,7 +182,7 @@ describe('readMappingFile', () => {
       green => var(--green)
     `);
 
-    const result = readMappingFile('fake/path');
+    const result = readMapFile('fake/path');
 
     expect(result).toEqual([
       { from: 'red', to: 'var(--red)' },
@@ -196,7 +196,7 @@ describe('readMappingFile', () => {
 
     mockReadFileSync.mockReturnValue('/bad-regex(/i => var(--broken)');
 
-    const result = readMappingFile('fake/path');
+    const result = readMapFile('fake/path');
 
     expect(result).toEqual([{ from: '/bad-regex(/i', to: 'var(--broken)' }]);
     expect(warnSpy).toHaveBeenCalledWith(
@@ -209,7 +209,7 @@ describe('readMappingFile', () => {
   it('throws on invalid mapping lines', () => {
     mockReadFileSync.mockReturnValue('invalid-line-without-arrow');
 
-    expect(() => readMappingFile('fake/path')).toThrow(
+    expect(() => readMapFile('fake/path')).toThrow(
       'Invalid mapping at line 1: invalid-line-without-arrow',
     );
   });
