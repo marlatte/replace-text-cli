@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   applyReplacements,
   parseMapPattern,
@@ -6,10 +6,31 @@ import {
   isValidMapExtension,
   readMapFile,
 } from '../src/replace-text.ts';
-import fs from 'fs';
+import { vol } from 'memfs';
 
-vi.mock('fs');
-const mockReadFileSync = fs.readFileSync as Mock;
+vi.mock('node:fs');
+
+vol.fromJSON(
+  {
+    './string.txt': 'red => var(--red)',
+    './regex.txt': '/blue/gi => var(--blue)',
+    './multi-line.txt': `
+      red => var(--red)
+      /blue/gi => var(--blue)
+      green => var(--green)
+    `,
+    './comments.txt': `
+      red => var(--red)
+      # this is a comment
+      /blue/gi => var(--blue)
+
+      green => var(--green)
+    `,
+    './warn.txt': '/bad-regex(/i => var(--broken)',
+    './throw.txt': 'invalid-line-without-arrow',
+  },
+  '/fake',
+);
 
 describe('isRegexPattern', () => {
   it('identifies regex strings correctly', () => {
@@ -135,37 +156,18 @@ describe('isValidMapExtension', () => {
 });
 
 describe('readMapFile', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('parses a simple string mapping', () => {
-    mockReadFileSync.mockReturnValue('red => var(--red)');
-
-    const result = readMapFile('fake/path');
-
+    const result = readMapFile('/fake/string.txt');
     expect(result).toEqual([{ from: 'red', to: 'var(--red)' }]);
   });
 
   it('parses a regex mapping', () => {
-    mockReadFileSync.mockReturnValue('/blue/gi => var(--blue)');
-
-    const result = readMapFile('fake/path');
-
+    const result = readMapFile('/fake/regex.txt');
     expect(result).toEqual([{ from: /blue/gi, to: 'var(--blue)' }]);
   });
 
   it('parses multiple valid mappings', () => {
-    mockReadFileSync.mockReturnValue(
-      `
-      red => var(--red)
-      /blue/gi => var(--blue)
-      green => var(--green)
-    `.trim(),
-    );
-
-    const result = readMapFile('fake/path');
-
+    const result = readMapFile('/fake/multi-line.txt');
     expect(result).toEqual([
       { from: 'red', to: 'var(--red)' },
       { from: /blue/gi, to: 'var(--blue)' },
@@ -174,16 +176,7 @@ describe('readMapFile', () => {
   });
 
   it('ignores empty lines and comments', () => {
-    mockReadFileSync.mockReturnValue(`
-      red => var(--red)
-      # this is a comment
-      /blue/gi => var(--blue)
-
-      green => var(--green)
-    `);
-
-    const result = readMapFile('fake/path');
-
+    const result = readMapFile('/fake/comments.txt');
     expect(result).toEqual([
       { from: 'red', to: 'var(--red)' },
       { from: /blue/gi, to: 'var(--blue)' },
@@ -194,9 +187,7 @@ describe('readMapFile', () => {
   it('warns and falls back on malformed regex', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    mockReadFileSync.mockReturnValue('/bad-regex(/i => var(--broken)');
-
-    const result = readMapFile('fake/path');
+    const result = readMapFile('/fake/warn.txt');
 
     expect(result).toEqual([{ from: '/bad-regex(/i', to: 'var(--broken)' }]);
     expect(warnSpy).toHaveBeenCalledWith(
@@ -207,9 +198,7 @@ describe('readMapFile', () => {
   });
 
   it('throws on invalid mapping lines', () => {
-    mockReadFileSync.mockReturnValue('invalid-line-without-arrow');
-
-    expect(() => readMapFile('fake/path')).toThrow(
+    expect(() => readMapFile('/fake/throw.txt')).toThrow(
       'Invalid mapping at line 1: invalid-line-without-arrow',
     );
   });
