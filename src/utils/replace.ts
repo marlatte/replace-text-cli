@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 
 export type MappingRule = {
   from: RegExp | string;
@@ -60,8 +59,4 @@ export function applyReplacements(
       return acc.split(from).join(to);
     }
   }, content);
-}
-
-export function isValidMapExtension(filePath: string): boolean {
-  return path.extname(filePath).toLowerCase() === '.txt';
 }

@@ -9,7 +9,7 @@ import {
   isDirectory,
   listDirectoryEntries,
   validateSearch,
-} from '../src/search-utils';
+} from '../../src/utils/search';
 import path from 'node:path';
 
 // tell vitest to use fs mock from __mocks__ folder

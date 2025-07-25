@@ -3,9 +3,8 @@ import {
   applyReplacements,
   parseMapPattern,
   isRegexPattern,
-  isValidMapExtension,
   readMapFile,
-} from '../src/replace-text.ts';
+} from '../../src/utils/replace.ts';
 import { vol } from 'memfs';
 
 vi.mock('node:fs');
@@ -131,27 +130,6 @@ describe('applyReplacements', () => {
       { from: '/--bad-regex(', to: 'oops' }, // invalid regex
     ]);
     expect(result).toBe(input);
-  });
-});
-
-describe('isValidMapExtension', () => {
-  it('returns true for .txt files', () => {
-    expect(isValidMapExtension('file.txt')).toBe(true);
-    expect(isValidMapExtension('/some/path/to/file.txt')).toBe(true);
-  });
-
-  it('returns false for other file types', () => {
-    expect(isValidMapExtension('file.md')).toBe(false);
-    expect(isValidMapExtension('file.env')).toBe(false);
-    expect(isValidMapExtension('file.conf')).toBe(false);
-    expect(isValidMapExtension('file')).toBe(false);
-    expect(isValidMapExtension('file.')).toBe(false);
-    expect(isValidMapExtension('.txt')).toBe(false);
-  });
-
-  it('is case-insensitive', () => {
-    expect(isValidMapExtension('file.TXT')).toBe(true);
-    expect(isValidMapExtension('file.TxT')).toBe(true);
   });
 });
 

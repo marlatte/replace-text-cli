@@ -1,5 +1,5 @@
 import { input } from '@inquirer/prompts';
-import { isValidMapExtension } from './replace-text.ts';
+
 import { defaultTheme } from './theme/index.ts';
 
 export type InputConfig = Parameters<typeof input>[0];
@@ -18,9 +18,7 @@ export const usingFileQuestion: InputConfig = {
 
     if (trimmed === '') return 'Mapping file is required';
 
-    return (
-      isValidMapExtension(val) || 'Invalid file extension. Please use ".txt"'
-    );
+    return 'Invalid file extension. Please use ".txt"';
   },
 };
 

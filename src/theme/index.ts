@@ -1,4 +1,4 @@
-import type { InputConfig } from '../inquire.ts';
+import type { InputConfig } from '../prompts.ts';
 import { colors } from './colors.ts';
 import { S_BAR, S_BAR_END, S_STEP_ERROR, getSymbol } from './symbols.ts';
 

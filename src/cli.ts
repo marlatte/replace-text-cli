@@ -4,7 +4,7 @@ import {
   inFileQuestion,
   outFileQuestion,
   usingFileQuestion,
-} from './inquire.ts';
+} from './prompts.ts';
 import { getSymbol, S_STEP_ERROR } from './theme/symbols.ts';
 import { colors } from './theme/colors.ts';
 
