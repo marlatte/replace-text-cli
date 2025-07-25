@@ -8,7 +8,8 @@ import {
   getSearchRoot,
   isDirectory,
   listDirectoryEntries,
-} from '../src/file-search';
+  validateSearch,
+} from '../src/search-utils';
 import path from 'node:path';
 
 // tell vitest to use fs mock from __mocks__ folder
@@ -234,5 +235,66 @@ describe('getSearchResults', () => {
     const entries = await getSearchResults('../../');
     const names = entries.map((e) => e.name);
     expect(names).toEqual(['project/']);
+  });
+});
+
+describe('validateSearch', () => {
+  beforeEach(() => {
+    vol.reset();
+  });
+
+  it('returns true for a valid file in a subfolder', async () => {
+    vol.fromJSON({ 'folder/file.css': 'Hello world' }, '/');
+    const result = await validateSearch('/folder/file.css');
+    expect(result).toBe(true);
+  });
+
+  it('returns error if the file does not exist', async () => {
+    const result = await validateSearch('/nope/missing.txt', {
+      extension: '.txt',
+    });
+    expect(result).toBe('File does not exist.');
+  });
+
+  it('returns error if the path is a folder', async () => {
+    vol.fromJSON({ 'folder/file.txt': 'hi' }, '/');
+    const result = await validateSearch('/folder', { extension: '.txt' });
+    expect(result).toBe('You must select a file, not a folder.');
+  });
+
+  it('returns true when file matches given extension', async () => {
+    vol.fromJSON({ 'file.txt': 'Hello world' }, '/');
+    const result = await validateSearch('/file.txt', { extension: '.txt' });
+    expect(result).toBe(true);
+  });
+
+  it('returns error if the file has the wrong extension', async () => {
+    vol.fromJSON({ 'folder/file.md': 'hi' }, '/');
+    const result = await validateSearch('/folder/file.md', {
+      extension: '.txt',
+    });
+    expect(result).toMatch(/invalid file extension/i);
+  });
+
+  it('returns a custom error message', async () => {
+    const result = await validateSearch('/nope/missing.css', {
+      error: 'Input file is required',
+    });
+    expect(result).toMatch(/input file is required/i);
+  });
+
+  it('returns error if path is empty', async () => {
+    const result = await validateSearch('', {
+      error: 'Mapping file is required',
+    });
+    expect(result).toMatch(/mapping file is required/i);
+  });
+
+  it('returns error if path is just extension', async () => {
+    vol.fromJSON({ '.txt': 'Hello world' }, '/');
+    const result = await validateSearch('.txt', {
+      extension: '.txt',
+    });
+    expect(result).toMatch(/file does not exist/i);
   });
 });
