@@ -35,6 +35,8 @@ const S_SUCCESS = unicodeOr('◆', '*');
 const S_WARN = unicodeOr('▲', '!');
 const S_ERROR = unicodeOr('■', 'x');
 
+export const S_POINTER = unicodeOr('❯', '>');
+
 export const getSymbol = (status: Status, useColor = true) => {
   const color = {
     idle: colors.cyan,

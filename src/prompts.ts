@@ -1,13 +1,17 @@
-import { input } from '@inquirer/prompts';
+import { input, search } from '@inquirer/prompts';
 
 import { defaultTheme } from './theme/index.ts';
+import { getSearchResults, validateSearch } from './utils/search.ts';
 
 export type InputConfig = Parameters<typeof input>[0];
+export type SearchConfig = Parameters<typeof search>[0];
 
-export const inFileQuestion: InputConfig = {
+export const inFileQuestion: SearchConfig = {
   message: 'What file do you want to modify?',
   theme: defaultTheme,
-  validate: (val) => val.trim() !== '' || 'Input file is required',
+  source: getSearchResults,
+  validate: (val) =>
+    validateSearch(val as string, { error: 'Input file is required.' }),
 };
 
 export const usingFileQuestion: InputConfig = {
@@ -18,7 +22,9 @@ export const usingFileQuestion: InputConfig = {
 
     if (trimmed === '') return 'Mapping file is required';
 
-    return 'Invalid file extension. Please use ".txt"';
+    return (
+      trimmed.endsWith('.txt') || 'Invalid file extension. Please use ".txt"'
+    );
   },
 };
 

@@ -1,10 +1,11 @@
-import type { InputConfig } from '../prompts.ts';
+import type { InputConfig, SearchConfig } from '../prompts.ts';
 import { colors } from './colors.ts';
 import { S_BAR, S_BAR_END, S_STEP_ERROR, getSymbol } from './symbols.ts';
 
 export type Status = 'idle' | 'done' | 'cancel' | 'error';
 
-type CustomTheme = InputConfig['theme'];
+type InputTheme = InputConfig['theme'];
+type SearchTheme = SearchConfig['theme'];
 
 export const defaultTheme = {
   prefix: {
@@ -15,4 +16,4 @@ export const defaultTheme = {
     error: (text: string) =>
       colors.yellow(`${S_BAR}\n${S_BAR_END}${S_STEP_ERROR} ${text}`),
   },
-} satisfies CustomTheme;
+} satisfies InputTheme | SearchTheme;

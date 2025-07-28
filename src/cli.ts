@@ -1,4 +1,4 @@
-import { input } from '@inquirer/prompts';
+import { input, search } from '@inquirer/prompts';
 import { makeProgram } from './program.ts';
 import {
   inFileQuestion,
@@ -16,7 +16,7 @@ async function main() {
   try {
     const options = program.opts();
 
-    const inFile = options.in ?? (await input(inFileQuestion));
+    const inFile = options.in ?? (await search(inFileQuestion));
     const usingFile = options.using ?? (await input(usingFileQuestion));
     const outFile = options.out ?? (await input(outFileQuestion));
 
@@ -30,8 +30,6 @@ async function main() {
 
     console.log('\nRunning:');
     console.log(`replace-text ${displayArgs.join(' ')}`);
-
-    throw new Error('Intentional');
   } catch (err) {
     if (err instanceof Error && err.name === 'ExitPromptError') {
       console.error(
