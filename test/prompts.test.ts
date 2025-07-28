@@ -172,7 +172,27 @@ describe('map file', () => {
   });
 });
 
-describe.skip('optional output file prompt', () => {
+describe('optional output file prompt', () => {
+  const firstLine = formatText('idle', outFileConfig.message);
+
+  it('handles valid path to file', async () => {
+    const { answer, events, getScreen } = await render(input, outFileConfig);
+    expect(getScreen()).toBe(firstLine);
+
+    const userInput = 'path/to/file.html';
+    events.type(userInput);
+    await Promise.resolve();
+    expect(getScreen().replace('\n', ' ')).toBe(`${firstLine} ${userInput}`);
+
+    events.keypress('enter');
+    await expect(answer).resolves.toBe(userInput);
+
+    // Flows onto next line, but otherwise matches
+    expect(getScreen().replace('\n', ' ')).toBe(
+      formatText('done', outFileConfig.message, userInput),
+    );
+  });
+
   it('returns empty string on Enter with no input', async () => {
     const { answer, events, getScreen } = await render(input, outFileConfig);
     expect(getScreen()).toBe(formatText('idle', outFileConfig.message));
@@ -182,18 +202,35 @@ describe.skip('optional output file prompt', () => {
     expect(getScreen()).toBe(formatText('done', outFileConfig.message));
   });
 
-  it('handles file path with spaces or quotes', async () => {
+  it('handles file path with spaces and quotes', async () => {
     const { answer, events, getScreen } = await render(input, outFileConfig);
+    expect(getScreen()).toBe(firstLine);
 
     const userInput = '"path with spaces.css"';
     events.type(userInput);
-    events.keypress('enter');
+    await Promise.resolve();
+    expect(getScreen().replace('\n', ' ')).toBe(`${firstLine} ${userInput}`);
 
+    events.keypress('enter');
     await expect(answer).resolves.toBe(userInput);
 
     // Flows onto next line, but otherwise matches
     expect(getScreen().replace('\n', '')).toBe(
       formatText('done', outFileConfig.message, userInput),
     );
+  });
+
+  it('requires output to be a file', async () => {
+    const { events, getScreen } = await render(input, outFileConfig);
+    expect(getScreen()).toBe(firstLine);
+
+    const userInput = 'not/a/file';
+    events.type(userInput);
+    await Promise.resolve();
+    expect(getScreen().replace('\n', ' ')).toBe(`${firstLine} ${userInput}`);
+
+    events.keypress('enter');
+    await Promise.resolve();
+    expect(getScreen()).toMatch(/output must be a file/i);
   });
 });

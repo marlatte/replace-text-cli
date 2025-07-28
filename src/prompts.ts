@@ -1,5 +1,4 @@
 import { input, search } from '@inquirer/prompts';
-
 import { defaultTheme } from './theme/index.ts';
 import { getSearchResults, validateSearch } from './utils/search.ts';
 
@@ -28,4 +27,11 @@ export const mapFileConfig: SearchConfig = {
 export const outFileConfig: InputConfig = {
   message: 'Where should the result be written? (Leave blank to overwrite)',
   theme: defaultTheme,
+  validate: (val) => {
+    if (!val) {
+      return true;
+    } else {
+      return !!val.match(/.*\..*/) || 'Output must be a file.';
+    }
+  },
 };
