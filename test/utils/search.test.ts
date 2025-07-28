@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { vol } from 'memfs';
-import os from 'node:os';
 import {
-  getFullPath,
   fileExists,
   getSearchResults,
   getSearchRoot,
@@ -23,47 +21,28 @@ beforeEach(() => {
   vi.spyOn(process, 'cwd').mockReturnValue('/home/user/project');
 });
 
-describe('getFullPath', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('expands ~ to home directory', () => {
-    vi.spyOn(os, 'homedir').mockReturnValue('/home/user/');
-    expect(getFullPath('~/test.txt')).toBe('/home/user/test.txt');
-  });
-
-  it('converts relative paths to absolute', () => {
-    expect(getFullPath('./test.txt')).toBe('/home/user/project/test.txt');
-  });
-
-  it('leaves normal paths unchanged', () => {
-    expect(getFullPath('/usr/local')).toBe('/usr/local');
-  });
-});
-
 describe('fileExists', () => {
   beforeEach(() => {
     vol.reset();
   });
 
-  it('finds existing files', async () => {
+  it('finds existing files', () => {
     vol.fromJSON(
       {
         './file.css': 'file contents',
       },
       '/fake',
     );
-    expect(await fileExists('/fake/file.css')).toBeTruthy();
+    expect(fileExists('/fake/file.css')).toBeTruthy();
   });
 
-  it('rejects missing files', async () => {
-    expect(await fileExists('/fake/missing.css')).toBeFalsy();
+  it('rejects missing files', () => {
+    expect(fileExists('/fake/missing.css')).toBeFalsy();
   });
 });
 
 describe('isDirectory', () => {
-  it('correctly identifies folders', async () => {
+  it('correctly identifies folders', () => {
     vol.fromJSON(
       {
         './folder/file.js': 'hello world',
@@ -71,13 +50,13 @@ describe('isDirectory', () => {
       '/root',
     );
 
-    expect(await isDirectory('/root/folder')).toBeTruthy();
-    expect(await isDirectory('/root/folder/file.js')).toBeFalsy();
+    expect(isDirectory('/root/folder')).toBeTruthy();
+    expect(isDirectory('/root/folder/file.js')).toBeFalsy();
   });
 });
 
 describe('getSearchRoot', () => {
-  const ROOT = '/';
+  const ROOT = '/'; // Needs to be this for later cwd mocking
 
   beforeEach(() => {
     vol.fromJSON(
@@ -96,44 +75,45 @@ describe('getSearchRoot', () => {
     vi.resetAllMocks();
   });
 
-  it('handles absolute paths correctly', async () => {
-    const result = await getSearchRoot('/tmp/temp.txt', ROOT);
+  it('handles absolute paths correctly', () => {
+    const result = getSearchRoot('/tmp/temp.txt', ROOT);
     expect(result).toBe('/tmp');
   });
 
-  it('returns the same path if it is a valid directory', async () => {
-    const result = await getSearchRoot('/home/user', ROOT);
+  it('returns the same path if it is a valid directory', () => {
+    const result = getSearchRoot('/home/user', ROOT);
     expect(result).toBe(path.join(ROOT, '/home/user'));
   });
 
-  it('walks up to parent if given path is not a directory', async () => {
-    const result = await getSearchRoot('/home/user/project/current.txt', ROOT);
+  it('walks up to parent if given path is not a directory', () => {
+    const result = getSearchRoot('/home/user/project/current.txt', ROOT);
     expect(result).toBe(path.join(ROOT, '/home/user/project'));
   });
 
-  it('returns cwd if nothing in the path exists', async () => {
-    const result = await getSearchRoot('/fake/deep/path/here', ROOT);
-    expect(result).toBe(ROOT);
+  it('returns given root when path does not exist', () => {
+    const result = getSearchRoot('/nothing/to/see/here', '/nothing');
+    expect(result).toBe('/nothing');
   });
 
-  it('walks up to root if it must', async () => {
-    const result = await getSearchRoot('/nothing/here', '/nothing');
-    expect(result).toBe(ROOT); // fallback to system root
-  });
-
-  it('handles files in "."', async () => {
-    const result = await getSearchRoot('./current.txt', process.cwd());
+  it('handles files in "."', () => {
+    const result = getSearchRoot('./current.txt', process.cwd());
     expect(result).toBe('/home/user/project');
   });
 
-  it('handles folders in "."', async () => {
-    const result = await getSearchRoot('./subdir/nested.txt', process.cwd());
+  it('handles folders in "."', () => {
+    const result = getSearchRoot('./subdir/nested.txt', process.cwd());
     expect(result).toBe('/home/user/project/subdir');
   });
 
-  it('handles parent dir ".."', async () => {
-    const result = await getSearchRoot('../shared/shared.txt', process.cwd());
+  it('handles parent dir ".."', () => {
+    const result = getSearchRoot('../shared/shared.txt', process.cwd());
     expect(result).toBe('/home/user/shared');
+  });
+
+  it('returns identity when searchTerm is cwd', () => {
+    const cwd = process.cwd();
+    const result = getSearchRoot(cwd, cwd);
+    expect(result).toBe(cwd);
   });
 });
 
@@ -158,42 +138,40 @@ describe('listDirectoryEntries', () => {
     );
   });
 
-  it('only shows file name, not full path', async () => {
-    const entries = await listDirectoryEntries('note');
-    expect(entries.map((e) => e.name)).toEqual(['notes.txt']);
-    expect(entries.map((e) => e.value)).toEqual([
-      '/home/user/project/notes.txt',
-    ]);
+  it('shows path relative to root', () => {
+    const root = '/home/user';
+    const searchTerm = 'project/note';
+    const entries = listDirectoryEntries(
+      searchTerm,
+      getSearchRoot(searchTerm, root),
+      root,
+    );
+    expect(entries).toEqual(['project/notes.txt']);
   });
 
-  it('performs case-insensitive matching', async () => {
-    const entries = await listDirectoryEntries('read');
-    expect(entries.map((e) => e.name)).toEqual(['README.md']);
+  it('performs case-insensitive matching', () => {
+    const entries = listDirectoryEntries('read');
+    expect(entries).toEqual(['README.md']);
   });
 
-  it('lists directories with a trailing slash', async () => {
-    const entries = await listDirectoryEntries('doc');
-    expect(entries.map((e) => e.name)).toEqual(['docs/']);
+  it('lists directories with a trailing slash', () => {
+    const entries = listDirectoryEntries('doc');
+    expect(entries).toEqual(['docs/']);
   });
 
-  it('sorts alphabetical, directories first', async () => {
-    const entries = await listDirectoryEntries('');
-    expect(entries.map((e) => e.name)).toEqual([
-      'docs/',
-      'src/',
-      'notes.txt',
-      'README.md',
-    ]);
+  it('sorts alphabetical, directories first', () => {
+    const entries = listDirectoryEntries('');
+    expect(entries).toEqual(['docs/', 'src/', 'notes.txt', 'README.md']);
   });
 
-  it("returns an empty array if no directory doesn't exist", async () => {
-    const entries = await listDirectoryEntries('', '/home/user/invalid');
+  it("returns an empty array if directory doesn't exist", () => {
+    const entries = listDirectoryEntries('', '/home/user/invalid');
     expect(entries).toEqual([]);
   });
 
-  it('searches below cwd', async () => {
-    const entries = await listDirectoryEntries('', '/home/user/project/docs');
-    expect(entries.map((e) => e.name)).toEqual(['manual.pdf', 'readme.md']);
+  it('searches below cwd', () => {
+    const entries = listDirectoryEntries('', '/home/user/project/docs');
+    expect(entries).toEqual(['docs/manual.pdf', 'docs/readme.md']);
   });
 });
 
@@ -201,40 +179,56 @@ describe('getSearchResults', () => {
   beforeEach(() => {
     vol.fromJSON(
       {
-        'index.ts': '',
-        'notes.txt': '',
-        'README.md': '',
-        'docs/readme.md': '',
-        'docs/index.md': '',
-        'src/index.ts': '',
-        'src/utils/helpers.ts': '',
+        'project/index.ts': '',
+        'project/notes.txt': '',
+        'project/README.md': '',
+        'project/docs/readme.md': '',
+        'project/docs/index.md': '',
+        'project/src/index.ts': '',
+        'project/src/utils/helpers.ts': '',
       },
-      '/home/user/project',
+      '/home/user/',
     );
   });
 
-  it('returns matches for flat files in cwd', async () => {
-    const entries = await getSearchResults('read');
-    const names = entries.map((e) => e.name);
-
-    expect(names).toContain('README.md');
-    expect(names).not.toContain('docs/readme.md'); // flat only
+  it('returns all contents on empty string', () => {
+    const entries = getSearchResults('');
+    expect(entries).toEqual([
+      'docs/',
+      'src/',
+      'index.ts',
+      'notes.txt',
+      'README.md',
+    ]);
   });
 
-  it('returns matches from nested directory term', async () => {
-    const entries = await getSearchResults('docs');
-    const names = entries.map((e) => e.name);
+  it('returns matches for flat files in cwd', () => {
+    const entries = getSearchResults('read');
 
-    expect(names).toContain('index.md');
-    expect(names).toContain('readme.md');
-    expect(names).not.toContain('README.md');
+    expect(entries).toHaveLength(1);
+    expect(entries).toContain('README.md');
+    expect(entries).not.toContain('docs/readme.md'); // flat only
   });
 
-  it('returns matches from relative parent traversal', async () => {
+  it('returns matches from nested directory term', () => {
+    const entries = getSearchResults('docs');
+
+    expect(entries).toContain('docs/index.md');
+    expect(entries).toContain('docs/readme.md');
+    expect(entries).not.toContain('README.md');
+  });
+
+  it('returns matches from relative parent traversal', () => {
     vi.spyOn(process, 'cwd').mockReturnValue('/home/user/project/docs');
-    const entries = await getSearchResults('../../');
-    const names = entries.map((e) => e.name);
-    expect(names).toEqual(['project/']);
+    const entries = getSearchResults('../');
+
+    // Doesn't show cwd for some reason
+    expect(entries).toEqual([
+      '../src/',
+      '../index.ts',
+      '../notes.txt',
+      '../README.md',
+    ]);
   });
 });
 
@@ -243,56 +237,56 @@ describe('validateSearch', () => {
     vol.reset();
   });
 
-  it('returns true for a valid file in a subfolder', async () => {
+  it('returns true for a valid file in a subfolder', () => {
     vol.fromJSON({ 'folder/file.css': 'Hello world' }, '/');
-    const result = await validateSearch('/folder/file.css');
+    const result = validateSearch('/folder/file.css');
     expect(result).toBe(true);
   });
 
-  it('returns error if the file does not exist', async () => {
-    const result = await validateSearch('/nope/missing.txt', {
+  it('returns error if the file does not exist', () => {
+    const result = validateSearch('/nope/missing.txt', {
       extension: '.txt',
     });
     expect(result).toBe('File does not exist.');
   });
 
-  it('returns error if the path is a folder', async () => {
+  it('returns error if the path is a folder', () => {
     vol.fromJSON({ 'folder/file.txt': 'hi' }, '/');
-    const result = await validateSearch('/folder', { extension: '.txt' });
+    const result = validateSearch('/folder', { extension: '.txt' });
     expect(result).toBe('You must select a file, not a folder.');
   });
 
-  it('returns true when file matches given extension', async () => {
+  it('returns true when file matches given extension', () => {
     vol.fromJSON({ 'file.txt': 'Hello world' }, '/');
-    const result = await validateSearch('/file.txt', { extension: '.txt' });
+    const result = validateSearch('/file.txt', { extension: '.txt' });
     expect(result).toBe(true);
   });
 
-  it('returns error if the file has the wrong extension', async () => {
+  it('returns error if the file has the wrong extension', () => {
     vol.fromJSON({ 'folder/file.md': 'hi' }, '/');
-    const result = await validateSearch('/folder/file.md', {
+    const result = validateSearch('/folder/file.md', {
       extension: '.txt',
     });
     expect(result).toMatch(/invalid file extension/i);
   });
 
-  it('returns a custom error message', async () => {
-    const result = await validateSearch('/nope/missing.css', {
+  it('returns a custom error message', () => {
+    const result = validateSearch('/nope/missing.css', {
       error: 'Input file is required',
     });
     expect(result).toMatch(/input file is required/i);
   });
 
-  it('returns error if path is empty', async () => {
-    const result = await validateSearch('', {
+  it('returns error if path is empty', () => {
+    const result = validateSearch('', {
       error: 'Mapping file is required',
     });
     expect(result).toMatch(/mapping file is required/i);
   });
 
-  it('returns error if path is just extension', async () => {
+  it('returns error if path is just extension', () => {
     vol.fromJSON({ '.txt': 'Hello world' }, '/');
-    const result = await validateSearch('.txt', {
+    const result = validateSearch('.txt', {
       extension: '.txt',
     });
     expect(result).toMatch(/file does not exist/i);

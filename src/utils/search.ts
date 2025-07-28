@@ -1,27 +1,19 @@
-import { promises as fs } from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
-import { constants } from 'node:fs/promises';
 
-export function getFullPath(inputPath: string): string {
-  return inputPath.startsWith('~')
-    ? path.join(os.homedir(), inputPath.slice(1))
-    : path.resolve(process.cwd(), inputPath);
-}
-
-export async function fileExists(filepath: string): Promise<boolean> {
+export function fileExists(filepath: string) {
   try {
-    await fs.access(filepath, constants.R_OK | constants.W_OK);
+    fs.accessSync(filepath, fs.constants.R_OK | fs.constants.W_OK);
     return true;
   } catch {
     return false;
   }
 }
 
-export async function isDirectory(filepath: string): Promise<boolean> {
-  if (await fileExists(filepath)) {
+export function isDirectory(filepath: string) {
+  if (fileExists(filepath)) {
     try {
-      const stats = await fs.stat(filepath);
+      const stats = fs.statSync(filepath);
       return stats.isDirectory();
     } catch {
       /* empty */
@@ -30,25 +22,22 @@ export async function isDirectory(filepath: string): Promise<boolean> {
   return false;
 }
 
-export async function getSearchRoot(
-  term: string,
-  cwd: string,
-): Promise<string> {
-  let dir = path.isAbsolute(term) ? term : path.join(cwd, term);
+export function getSearchRoot(term: string, root: string) {
+  let pathToCurrentDir = path.join(root, term);
 
-  while (!(await isDirectory(dir)) && dir !== path.dirname(dir)) {
-    dir = path.dirname(dir);
+  while (!isDirectory(pathToCurrentDir) && pathToCurrentDir !== root) {
+    pathToCurrentDir = path.dirname(pathToCurrentDir);
   }
-
-  return dir;
+  return pathToCurrentDir;
 }
 
-export async function listDirectoryEntries(
+export function listDirectoryEntries(
   searchTerm: string,
   currentDir: string = process.cwd(),
-): Promise<{ name: string; value: string }[]> {
+  root: string = process.cwd(),
+) {
   try {
-    const dirContents = await fs.readdir(currentDir, {
+    const dirContents = fs.readdirSync(currentDir, {
       withFileTypes: true,
     });
 
@@ -57,18 +46,20 @@ export async function listDirectoryEntries(
         if (a.isDirectory() === b.isDirectory()) {
           return a.name.localeCompare(b.name);
         }
-        return a.isDirectory() ? -1 : 1; // Sort directories first
+
+        // Sort dir first
+        return a.isDirectory() ? -1 : 1;
       })
       .map((entry) => {
-        const fullPath = path.join(currentDir, entry.name);
-        const displayName = `${entry.name}${entry.isDirectory() ? path.sep : ''}`;
-        return {
-          name: displayName,
-          value: fullPath,
-        };
+        const pathToEntry = path.relative(
+          root,
+          path.join(currentDir, entry.name),
+        );
+        const end = entry.isDirectory() ? path.sep : '';
+        return `${pathToEntry}${end}`;
       })
-      .filter(({ value }) =>
-        value.toLowerCase().includes(searchTerm.toLowerCase()),
+      .filter((entry) =>
+        entry.toLocaleLowerCase().includes(searchTerm.toLocaleLowerCase()),
       );
   } catch {
     // fall back to empty list if directory read fails
@@ -76,22 +67,23 @@ export async function listDirectoryEntries(
   }
 }
 
-export async function getSearchResults(term = '', root = process.cwd()) {
-  const searchTerm = getFullPath(term.trim());
-  const searchRoot = await getSearchRoot(searchTerm, root);
-  const results = await listDirectoryEntries(searchTerm, searchRoot);
+export function getSearchResults(term = '') {
+  const root = process.cwd();
+  const searchTerm = term.trim();
+  const searchRoot = getSearchRoot(searchTerm, root);
+  const results = listDirectoryEntries(searchTerm, searchRoot, root);
   return results;
 }
 
-export async function validateSearch(
+export function validateSearch(
   filePath: string,
   options?: { extension?: string; error?: string },
 ) {
-  const expanded = getFullPath(filePath.trim());
-  if (!(await fileExists(expanded))) {
+  const trimmed = filePath.trim();
+  if (!fileExists(trimmed)) {
     return options?.error || 'File does not exist.';
   }
-  if (await isDirectory(expanded)) {
+  if (isDirectory(trimmed)) {
     return 'You must select a file, not a folder.';
   }
   if (options?.extension) {
