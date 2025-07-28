@@ -17,6 +17,7 @@ export function parseMapPattern(from: string): RegExp | string {
     try {
       return new RegExp(pattern, flags);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.warn(
         `Warning: Regex rejected, treating as string literal.\n  Pattern: ${from}\n  Reason: ${(err as Error).message}`,
       );

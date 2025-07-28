@@ -14,6 +14,7 @@ export default defineConfig([
     extends: ['js/recommended'],
     rules: {
       '@stylistic/quotes': ['error', 'single', { avoidEscape: true }],
+      'no-console': ['warn'],
     },
   },
   {

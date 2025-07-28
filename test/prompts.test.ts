@@ -1,10 +1,6 @@
 import { input, search } from '@inquirer/prompts';
 import { render } from '@inquirer/testing';
-import {
-  inFileQuestion,
-  outFileQuestion,
-  usingFileQuestion,
-} from '../src/prompts';
+import { inFileConfig, outFileConfig, mapFileConfig } from '../src/prompts';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getSymbol, S_POINTER } from '../src/theme/symbols';
 import { Status } from '../src/theme';
@@ -12,9 +8,32 @@ import { vol } from 'memfs';
 
 vi.mock('node:fs');
 
+vol.fromNestedJSON(
+  {
+    project: {
+      'README.md': '',
+      'notes.txt': '',
+      docs: {
+        'readme.md': 'Hello',
+        'manual.pdf': 'PDF content',
+      },
+      src: {
+        'index.ts': '',
+        'utils.ts': '',
+        'map.txt': '',
+      },
+    },
+  },
+  '/home/user/',
+);
+
+const cwdContents = `${S_POINTER} docs/
+        src/
+        notes.txt
+        README.md
+      (Use arrow keys)`;
+
 beforeEach(() => {
-  // reset the state of in-memory fs
-  vol.reset();
   vi.spyOn(process, 'cwd').mockReturnValue('/home/user/project');
 });
 
@@ -23,37 +42,14 @@ const formatText = (status: Status, ...textSegments: string[]) => {
 };
 
 describe('input prompt', () => {
-  beforeEach(() => {
-    vol.fromNestedJSON(
-      {
-        project: {
-          'README.md': '',
-          'notes.txt': '',
-          docs: {
-            'readme.md': 'Hello',
-            'manual.pdf': 'PDF content',
-          },
-          src: {
-            'index.ts': '',
-            'utils.ts': '',
-          },
-        },
-      },
-      '/home/user/',
-    );
-  });
-  const firstLine = formatText('idle', inFileQuestion.message);
+  const firstLine = formatText('idle', inFileConfig.message);
 
   it('handles a file', async () => {
-    const { answer, events, getScreen } = await render(search, inFileQuestion);
+    const { answer, events, getScreen } = await render(search, inFileConfig);
 
     expect(getScreen()).toMatchInlineSnapshot(`
       "${firstLine} 
-      ${S_POINTER} docs/
-        src/
-        notes.txt
-        README.md
-      (Use arrow keys)"
+      ${cwdContents}"
       `);
 
     events.type('notes');
@@ -75,12 +71,12 @@ describe('input prompt', () => {
 
     await expect(answer).resolves.toEqual('notes.txt');
     expect(getScreen()).toBe(
-      formatText('done', inFileQuestion.message, 'notes.txt'),
+      formatText('done', inFileConfig.message, 'notes.txt'),
     );
   });
 
   it('whitespace-only input treated as blank', async () => {
-    const { events, getScreen } = await render(search, inFileQuestion);
+    const { events, getScreen } = await render(search, inFileConfig);
 
     events.type('   ');
     await Promise.resolve();
@@ -97,7 +93,7 @@ describe('input prompt', () => {
   });
 
   it("won't submit on invalid path", async () => {
-    const { events, getScreen } = await render(search, inFileQuestion);
+    const { events, getScreen } = await render(search, inFileConfig);
     const errorMessage = `
       "${firstLine} not/real
       │
@@ -115,7 +111,7 @@ describe('input prompt', () => {
   });
 
   it('throws on Ctrl+C', async () => {
-    const { answer, events } = await render(search, inFileQuestion);
+    const { answer, events } = await render(search, inFileConfig);
 
     events.keypress({ name: 'c', ctrl: true });
 
@@ -123,57 +119,71 @@ describe('input prompt', () => {
   });
 });
 
-describe.skip('map file', () => {
-  it.skip('handles a valid map filename', async () => {
-    const { answer, events, getScreen } = await render(
-      input,
-      usingFileQuestion,
-    );
+describe('map file', () => {
+  const firstLine = formatText('idle', mapFileConfig.message);
 
-    expect(getScreen()).toBe(formatText('idle', usingFileQuestion.message));
+  it('handles a valid map file', async () => {
+    const { answer, events, getScreen } = await render(search, mapFileConfig);
 
-    const userInput = 'map.txt';
-    events.type(userInput);
+    expect(getScreen()).toMatchInlineSnapshot(`
+      "${firstLine} 
+      ${cwdContents}"
+      `);
+
+    events.type('src/m');
+    await Promise.resolve();
+    expect(getScreen()).toMatchInlineSnapshot(`
+        "${firstLine} src/m
+        ${S_POINTER} src/map.txt"
+        `);
+
+    events.keypress('tab');
+    await Promise.resolve();
+    expect(getScreen()).toMatchInlineSnapshot(`
+        "${firstLine} src/map.txt
+        ${S_POINTER} src/map.txt"
+        `);
+
     events.keypress('enter');
+    await Promise.resolve();
 
-    await expect(answer).resolves.toEqual(userInput);
+    await expect(answer).resolves.toEqual('src/map.txt');
     expect(getScreen()).toBe(
-      formatText('done', usingFileQuestion.message, userInput),
+      formatText('done', mapFileConfig.message, 'src/map.txt'),
     );
   });
 
-  it('rejects empty input', async () => {
-    const { events, getScreen } = await render(input, usingFileQuestion);
+  it('rejects an invalid map file', async () => {
+    const { events, getScreen } = await render(search, mapFileConfig);
 
-    events.keypress('enter');
-
+    events.type('read');
     await Promise.resolve();
-    expect(getScreen()).toMatch(/Mapping file is required/);
-  });
+    expect(getScreen()).toMatchInlineSnapshot(`
+      "${firstLine} read
+      ${S_POINTER} README.md"
+      `);
 
-  it('rejects an invalid map filename', async () => {
-    const { events, getScreen } = await render(input, usingFileQuestion);
-
-    events.type('map.css');
-    events.keypress('enter');
-
+    events.keypress('tab');
     await Promise.resolve();
+    events.keypress('enter');
+    await Promise.resolve();
+
     expect(getScreen()).toMatch(/Invalid file extension/);
   });
 });
 
 describe.skip('optional output file prompt', () => {
   it('returns empty string on Enter with no input', async () => {
-    const { answer, events, getScreen } = await render(input, outFileQuestion);
-    expect(getScreen()).toBe(formatText('idle', outFileQuestion.message));
+    const { answer, events, getScreen } = await render(input, outFileConfig);
+    expect(getScreen()).toBe(formatText('idle', outFileConfig.message));
 
     events.keypress('enter');
     await expect(answer).resolves.toBe('');
-    expect(getScreen()).toBe(formatText('done', outFileQuestion.message));
+    expect(getScreen()).toBe(formatText('done', outFileConfig.message));
   });
 
   it('handles file path with spaces or quotes', async () => {
-    const { answer, events, getScreen } = await render(input, outFileQuestion);
+    const { answer, events, getScreen } = await render(input, outFileConfig);
 
     const userInput = '"path with spaces.css"';
     events.type(userInput);
@@ -183,7 +193,7 @@ describe.skip('optional output file prompt', () => {
 
     // Flows onto next line, but otherwise matches
     expect(getScreen().replace('\n', '')).toBe(
-      formatText('done', outFileQuestion.message, userInput),
+      formatText('done', outFileConfig.message, userInput),
     );
   });
 });

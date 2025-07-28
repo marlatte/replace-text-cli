@@ -6,7 +6,7 @@ import { getSearchResults, validateSearch } from './utils/search.ts';
 export type InputConfig = Parameters<typeof input>[0];
 export type SearchConfig = Parameters<typeof search>[0];
 
-export const inFileQuestion: SearchConfig = {
+export const inFileConfig: SearchConfig = {
   message: 'What file do you want to modify?',
   theme: defaultTheme,
   source: getSearchResults,
@@ -14,21 +14,18 @@ export const inFileQuestion: SearchConfig = {
     validateSearch(val as string, { error: 'Input file is required.' }),
 };
 
-export const usingFileQuestion: InputConfig = {
+export const mapFileConfig: SearchConfig = {
   message: 'What mapping file should be used?',
   theme: defaultTheme,
-  validate: (val) => {
-    const trimmed = val.trim();
-
-    if (trimmed === '') return 'Mapping file is required';
-
-    return (
-      trimmed.endsWith('.txt') || 'Invalid file extension. Please use ".txt"'
-    );
-  },
+  source: getSearchResults,
+  validate: (val) =>
+    validateSearch(val as string, {
+      error: 'Mapping file is required.',
+      extension: '.txt',
+    }),
 };
 
-export const outFileQuestion: InputConfig = {
+export const outFileConfig: InputConfig = {
   message: 'Where should the result be written? (Leave blank to overwrite)',
   theme: defaultTheme,
 };
