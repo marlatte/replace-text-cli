@@ -1,10 +1,7 @@
+/* eslint-disable no-console */
 import { input, search } from '@inquirer/prompts';
 import { makeProgram } from './program.ts';
-import {
-  inFileQuestion,
-  outFileQuestion,
-  usingFileQuestion,
-} from './prompts.ts';
+import { inFileConfig, outFileConfig, mapFileConfig } from './prompts.ts';
 import { getSymbol, S_STEP_ERROR } from './theme/symbols.ts';
 import { colors } from './theme/colors.ts';
 
@@ -16,25 +13,26 @@ async function main() {
   try {
     const options = program.opts();
 
-    const inFile = options.in ?? (await search(inFileQuestion));
-    const usingFile = options.using ?? (await input(usingFileQuestion));
-    const outFile = options.out ?? (await input(outFileQuestion));
+    const inFile = options.in ?? (await search(inFileConfig));
+    const mapFile = options.map ?? (await search(mapFileConfig));
+    const outFile = options.out ?? (await input(outFileConfig));
 
     const displayArgs = [
       '--in',
       inFile,
-      '--using',
-      usingFile,
+      '--map',
+      mapFile,
       ...(outFile ? ['--out', outFile] : []),
     ];
 
     console.log('\nRunning:');
     console.log(`replace-text ${displayArgs.join(' ')}`);
+
+    // await runReplaceText({ in: inFile, map: mapFile, out: outFile });
   } catch (err) {
     if (err instanceof Error && err.name === 'ExitPromptError') {
-      console.error(
-        `\n${getSymbol('error')} Action cancelled by user. Exiting.\n`,
-      );
+      const icon = getSymbol('error');
+      console.error(`\n${icon} Action cancelled by user. Exiting. ${icon}\n`);
       process.exit(1);
     } else {
       console.error(
@@ -45,26 +43,9 @@ async function main() {
       process.exit(1);
     }
   }
-  // await runReplaceText({ in: inFile, using: usingFile, out: outFile });
 }
 
 main().catch((err) => {
   console.error('Error:', err);
   process.exit(1);
 });
-
-/*
-Remember to add trycatch at end:
-
-try {
-  normal flow...
-  } catch (err) {
-    if (err instanceof Error && err.name === 'ExitPromptError') {
-      console.error('\n✖ Prompt cancelled by user. Exiting.');
-      process.exit(1);
-    } else {
-      console.error('\n✖ Unexpected error:', err);
-      process.exit(1);
-  }
-}
-*/

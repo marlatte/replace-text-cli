@@ -12,30 +12,30 @@ describe('makeProgram', () => {
     const program = testProgram([
       '--in',
       'input.txt',
-      '--using',
+      '--map',
       'map.txt',
       '--out',
       'output.txt',
     ]);
     expect(program.opts()).toEqual({
       in: 'input.txt',
-      using: 'map.txt',
+      map: 'map.txt',
       out: 'output.txt',
     });
   });
 
   it('omits --out if not provided', () => {
-    const program = testProgram(['--in', 'a.txt', '--using', 'b.txt']);
+    const program = testProgram(['--in', 'a.txt', '--map', 'b.txt']);
     expect(program.opts()).toEqual({
       in: 'a.txt',
-      using: 'b.txt',
+      map: 'b.txt',
       out: undefined,
     });
   });
 
   it('throws on unknown args', () => {
     expect(() => {
-      testProgram(['--in', 'a', '--using', 'b', '--put']);
+      testProgram(['--in', 'a', '--map', 'b', '--put']);
     }).toThrow(/unknown option/i);
   });
 
@@ -43,7 +43,7 @@ describe('makeProgram', () => {
     const program = testProgram([]);
     expect(program.opts()).toEqual({
       in: undefined,
-      using: undefined,
+      map: undefined,
       out: undefined,
     });
   });

@@ -21,7 +21,7 @@ export function makeProgram(options?: {
     .name('replace-text')
     .description('Replace text in a file using mapping rules')
     .option('--in <file>', 'Input file to modify')
-    .option('--using <file>', 'Mapping file to use')
+    .option('--map <file>', 'Mapping file to use')
     .option(
       '--out <file>',
       'Where to write the result (leave blank to overwrite)',
