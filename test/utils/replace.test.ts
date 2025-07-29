@@ -1,34 +1,52 @@
+/* eslint-disable no-useless-escape */
 import { describe, it, expect, vi } from 'vitest';
 import {
   applyReplacements,
   parseMapPattern,
   isRegexPattern,
   readMapFile,
+  getOutputText,
 } from '../../src/utils/replace.ts';
 import { vol } from 'memfs';
+import { readFileSync } from 'node:fs';
 
 vi.mock('node:fs');
 
-vol.fromJSON(
+vol.fromNestedJSON(
   {
-    './string.txt': 'red => var(--red)',
-    './regex.txt': '/blue/gi => var(--blue)',
-    './multi-line.txt': `
-      red => var(--red)
-      /blue/gi => var(--blue)
-      green => var(--green)
-    `,
-    './comments.txt': `
-      red => var(--red)
-      # this is a comment
-      /blue/gi => var(--blue)
-
-      green => var(--green)
-    `,
-    './warn.txt': '/bad-regex(/i => var(--broken)',
-    './throw.txt': 'invalid-line-without-arrow',
+    mapFiles: {
+      'string.txt': 'red => var(--red)',
+      'regex.txt': '/blue/gi => var(--blue)',
+      'multi-line.txt': `
+        red => var(--red)
+        /blue/gi => var(--blue)
+        green => var(--green)
+      `,
+      'comments.txt': `
+        red => var(--red)
+        # this is a comment
+        /blue/gi => var(--blue)
+  
+        green => var(--green)
+      `,
+      'warn.txt': '/bad-regex(/i => var(--broken)',
+      'throw.txt': 'invalid-line-without-arrow',
+      'arrow.txt': `
+        ; => \\s=>
+      `,
+      // Parser removes first escape, so '\w' needs to be '\\w', etc.
+      'complex.txt': `
+          /(--[\\w-]+): (oklch\\([\\d\\.%\\s]+\\));/g => $2\\s=> var($1)
+        `,
+    },
+    inputFiles: {
+      'simple.css':
+        'color: Blue;\nbackground-color: green;\nborder: 1px solid red;',
+      'complex.css':
+        '--color-red-50: oklch(97.1% 0.013 17.38);\n--color-red-100: oklch(93.6% 0.032 17.717);\n--color-yellow-800: oklch(47.6% 0.114 61.907);',
+    },
   },
-  '/fake',
+  '/',
 );
 
 describe('isRegexPattern', () => {
@@ -82,6 +100,67 @@ describe('parseMapPattern', () => {
   });
 });
 
+describe('readMapFile', () => {
+  it('parses a simple string mapping', () => {
+    const result = readMapFile('/mapFiles/string.txt');
+    expect(result).toEqual([{ from: 'red', to: 'var(--red)' }]);
+  });
+
+  it('parses a regex mapping', () => {
+    const result = readMapFile('/mapFiles/regex.txt');
+    expect(result).toEqual([{ from: /blue/gi, to: 'var(--blue)' }]);
+  });
+
+  it('parses multiple valid mappings', () => {
+    const result = readMapFile('/mapFiles/multi-line.txt');
+    expect(result).toEqual([
+      { from: 'red', to: 'var(--red)' },
+      { from: /blue/gi, to: 'var(--blue)' },
+      { from: 'green', to: 'var(--green)' },
+    ]);
+  });
+
+  it('ignores empty lines and comments', () => {
+    const result = readMapFile('/mapFiles/comments.txt');
+    expect(result).toEqual([
+      { from: 'red', to: 'var(--red)' },
+      { from: /blue/gi, to: 'var(--blue)' },
+      { from: 'green', to: 'var(--green)' },
+    ]);
+  });
+
+  it('warns and falls back on malformed regex', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = readMapFile('/mapFiles/warn.txt');
+
+    expect(result).toEqual([{ from: '/bad-regex(/i', to: 'var(--broken)' }]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Regex rejected'),
+    );
+
+    warnSpy.mockRestore();
+  });
+
+  it('throws on invalid mapping lines', () => {
+    expect(() => readMapFile('/mapFiles/throw.txt')).toThrow(
+      'Invalid mapping at line 1: invalid-line-without-arrow',
+    );
+  });
+
+  it('parses rules that contain an escaped arrow "\\=>"', () => {
+    const result = readMapFile('/mapFiles/arrow.txt');
+    expect(result).toEqual([{ from: ';', to: ' =>' }]);
+  });
+
+  it('parses rules with capture groups', () => {
+    const result = readMapFile('/mapFiles/complex.txt');
+    expect(result).toEqual([
+      { from: /(--[\w-]+): (oklch\([\d\.%\s]+\));/g, to: '$2 => var($1)' },
+    ]);
+  });
+});
+
 describe('applyReplacements', () => {
   it('replaces string literals', () => {
     const input = 'color: blue;';
@@ -131,53 +210,42 @@ describe('applyReplacements', () => {
     ]);
     expect(result).toBe(input);
   });
+
+  it('applies regex replacement with capture groups', () => {
+    const input = readFileSync('/inputFiles/complex.css', 'utf8');
+    const result = applyReplacements(input, [
+      { from: /(--[\w-]+): (oklch\([\d\.%\s]+\));/g, to: '$2 => var($1)' },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+        "oklch(97.1% 0.013 17.38) => var(--color-red-50)
+        oklch(93.6% 0.032 17.717) => var(--color-red-100)
+        oklch(47.6% 0.114 61.907) => var(--color-yellow-800)"
+      `);
+  });
 });
 
-describe('readMapFile', () => {
-  it('parses a simple string mapping', () => {
-    const result = readMapFile('/fake/string.txt');
-    expect(result).toEqual([{ from: 'red', to: 'var(--red)' }]);
+describe('getOutputText', () => {
+  it('reads simple rules and applies them', () => {
+    const inFile = '/inputFiles/simple.css';
+    const mapFile = '/mapFiles/multi-line.txt';
+    const output = getOutputText({ inFile, mapFile });
+    expect(output).toMatchInlineSnapshot(`
+      "color: var(--blue);
+      background-color: var(--green);
+      border: 1px solid var(--red);"
+    `);
   });
 
-  it('parses a regex mapping', () => {
-    const result = readMapFile('/fake/regex.txt');
-    expect(result).toEqual([{ from: /blue/gi, to: 'var(--blue)' }]);
-  });
+  it('reads and applies rules with capture groups', () => {
+    const inFile = '/inputFiles/complex.css';
+    const mapFile = '/mapFiles/complex.txt';
+    const output = getOutputText({ inFile, mapFile });
 
-  it('parses multiple valid mappings', () => {
-    const result = readMapFile('/fake/multi-line.txt');
-    expect(result).toEqual([
-      { from: 'red', to: 'var(--red)' },
-      { from: /blue/gi, to: 'var(--blue)' },
-      { from: 'green', to: 'var(--green)' },
-    ]);
-  });
-
-  it('ignores empty lines and comments', () => {
-    const result = readMapFile('/fake/comments.txt');
-    expect(result).toEqual([
-      { from: 'red', to: 'var(--red)' },
-      { from: /blue/gi, to: 'var(--blue)' },
-      { from: 'green', to: 'var(--green)' },
-    ]);
-  });
-
-  it('warns and falls back on malformed regex', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    const result = readMapFile('/fake/warn.txt');
-
-    expect(result).toEqual([{ from: '/bad-regex(/i', to: 'var(--broken)' }]);
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Regex rejected'),
-    );
-
-    warnSpy.mockRestore();
-  });
-
-  it('throws on invalid mapping lines', () => {
-    expect(() => readMapFile('/fake/throw.txt')).toThrow(
-      'Invalid mapping at line 1: invalid-line-without-arrow',
-    );
+    expect(output).toMatchInlineSnapshot(`
+      "oklch(97.1% 0.013 17.38) => var(--color-red-50)
+      oklch(93.6% 0.032 17.717) => var(--color-red-100)
+      oklch(47.6% 0.114 61.907) => var(--color-yellow-800)"
+    `);
   });
 });

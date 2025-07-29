@@ -30,23 +30,28 @@ export function parseMapPattern(from: string): RegExp | string {
 export function readMapFile(filePath: string): MappingRule[] {
   const fileContents = fs.readFileSync(filePath, 'utf-8');
 
-  return fileContents
-    .split(/\r?\n/)
-    .filter((line) => line.trim() && !/^\s*#/.test(line))
-    .map((line, i) => {
-      // Strip inline comments
-      const [mappingPart] = line.split('#');
-      const [rawFrom, ...rest] = mappingPart.split('=>');
+  return (
+    fileContents
+      .split(/\r?\n/)
+      // Strip full-line comments
+      .filter((line) => line.trim() && !/^\s*#/.test(line))
+      .map((line, i) => {
+        // Strip inline comments
+        const [mappingPart] = line.split('#');
+        const [rawFrom, ...rest] = mappingPart.split(' =>');
 
-      if (!rawFrom || rest.length === 0) {
-        throw new Error(`Invalid mapping at line ${i + 1}: ${line}`);
-      }
+        if (!rawFrom || rest.length === 0) {
+          throw new Error(`Invalid mapping at line ${i + 1}: ${line}`);
+        }
 
-      const from = parseMapPattern(rawFrom.trim());
-      const to = rest.join('=>').trim();
+        const from = parseMapPattern(rawFrom.trim());
+        const rawTo = rest.join(' =>').trim();
 
-      return { from, to };
-    });
+        const to = rawTo.replace('\\s', ' ');
+
+        return { from, to };
+      })
+  );
 }
 
 export function applyReplacements(
@@ -60,4 +65,16 @@ export function applyReplacements(
       return acc.split(from).join(to);
     }
   }, content);
+}
+
+export function getOutputText({
+  inFile,
+  mapFile,
+}: {
+  inFile: string;
+  mapFile: string;
+}) {
+  const inFileContents = fs.readFileSync(inFile, 'utf8');
+  const mapRules = readMapFile(mapFile);
+  return applyReplacements(inFileContents, mapRules);
 }
