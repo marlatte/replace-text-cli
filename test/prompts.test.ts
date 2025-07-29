@@ -194,12 +194,12 @@ describe('optional output file prompt', () => {
   });
 
   it('returns empty string on Enter with no input', async () => {
-    const { answer, events, getScreen } = await render(input, outFileConfig);
+    const { events, getScreen } = await render(input, outFileConfig);
     expect(getScreen()).toBe(formatText('idle', outFileConfig.message));
 
     events.keypress('enter');
-    await expect(answer).resolves.toBe('');
-    expect(getScreen()).toBe(formatText('done', outFileConfig.message));
+    await Promise.resolve();
+    expect(getScreen()).toMatch(/output file must have a name and extension/i);
   });
 
   it('handles file path with spaces and quotes', async () => {
@@ -231,6 +231,6 @@ describe('optional output file prompt', () => {
 
     events.keypress('enter');
     await Promise.resolve();
-    expect(getScreen()).toMatch(/output must be a file/i);
+    expect(getScreen()).toMatch(/output file must have a name and extension/i);
   });
 });

@@ -1,7 +1,13 @@
 /* eslint-disable no-console */
-import { input, search } from '@inquirer/prompts';
+import { input, search, select } from '@inquirer/prompts';
 import { makeProgram } from './program.ts';
-import { inFileConfig, outFileConfig, mapFileConfig } from './prompts.ts';
+import {
+  inFileConfig,
+  outFileConfig,
+  mapFileConfig,
+  overwriteConfig,
+  dryRunConfig,
+} from './prompts.ts';
 import { getSymbol, S_STEP_ERROR } from './theme/symbols.ts';
 import { colors } from './theme/colors.ts';
 
@@ -11,22 +17,39 @@ program.parse();
 
 async function main() {
   try {
-    const options = program.opts();
+    const options = program.opts() as {
+      in?: string;
+      map?: string;
+      out?: string | boolean;
+      dryRun?: boolean;
+    };
 
-    const inFile = options.in ?? (await search(inFileConfig));
-    const mapFile = options.map ?? (await search(mapFileConfig));
-    const outFile = options.out ?? (await input(outFileConfig));
+    const inFile = options.in ?? ((await search(inFileConfig)) as string);
+    const mapFile = options.map ?? ((await search(mapFileConfig)) as string);
+
+    let outFile: string | undefined;
+    if (options.out) {
+      if (typeof options.out === 'string') {
+        outFile = options.out;
+      }
+    } else {
+      const overwrite = await select(overwriteConfig);
+      if (!overwrite) {
+        outFile = await input(outFileConfig);
+      }
+    }
+
+    const dryRun = options.dryRun ?? (await select(dryRunConfig));
 
     const displayArgs = [
-      '--in',
-      inFile,
-      '--map',
-      mapFile,
-      ...(outFile ? ['--out', outFile] : []),
+      ...(dryRun ? ['--dry-run'] : []),
+      `--in=${inFile}`,
+      `--map=${mapFile}`,
+      ...(outFile ? [`--out=${outFile}`] : []),
     ];
 
-    console.log('\nRunning:');
-    console.log(`replace-text ${displayArgs.join(' ')}`);
+    console.log(`\n${dryRun ? 'Simulating:' : 'Running:'}`);
+    console.log(`replace-text ${displayArgs.join(' ')}\n`);
 
     // await runReplaceText({ in: inFile, map: mapFile, out: outFile });
   } catch (err) {

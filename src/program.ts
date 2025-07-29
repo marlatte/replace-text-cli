@@ -19,13 +19,14 @@ export function makeProgram(options?: {
 
   program
     .name('replace-text')
-    .description('Replace text in a file using mapping rules')
-    .option('--in <file>', 'Input file to modify')
-    .option('--map <file>', 'Mapping file to use')
+    .description('Replace text from a file using mapping rules')
+    .option('-i, --in <file>', 'Input file to modify')
+    .option('-m, --map <file>', 'Mapping file to use')
     .option(
-      '--out <file>',
-      'Where to write the result (leave blank to overwrite)',
-    );
+      '-o, --out [file]',
+      'Where to write the result (exclude [file] to overwrite)',
+    )
+    .option('-d, --dry-run', 'Simulate output without affecting files');
 
   return program;
 }
