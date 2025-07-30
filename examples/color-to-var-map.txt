@@ -4,3 +4,5 @@
 # which can then be used as a map file on other inputs.
 
 /(--[\w-]+): (oklch\([\d\.%\s]+\));/g => $2\s=> var($1)
+/^[:\w]+ {$|^}$/gm =>
+/^\s|\n$/gm =>
