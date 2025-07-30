@@ -8,8 +8,16 @@ import {
   overwriteConfig,
   dryRunConfig,
 } from './prompts.ts';
-import { getSymbol, S_STEP_ERROR } from './theme/symbols.ts';
+import {
+  getSymbol,
+  S_BAR,
+  S_BAR_END,
+  S_BAR_H,
+  S_STEP_ERROR,
+} from './theme/symbols.ts';
 import { colors } from './theme/colors.ts';
+import { getOutputText } from './utils/replace.ts';
+// import fs from 'node:fs';
 
 const program = makeProgram();
 
@@ -51,7 +59,21 @@ async function main() {
     console.log(`\n${dryRun ? 'Simulating:' : 'Running:'}`);
     console.log(`replace-text ${displayArgs.join(' ')}\n`);
 
-    // await runReplaceText({ in: inFile, map: mapFile, out: outFile });
+    const outputText = getOutputText({ inFile, mapFile });
+    const targetFile = outFile || inFile;
+    console.log(`Writing replacements to ${colors.cyan(targetFile)}...\n`);
+
+    if (dryRun) {
+      console.log(
+        `${getSymbol('done')}  ${colors.dim('Sample output:')}\n${S_BAR}\n${S_BAR}${outputText
+          .split('\n')
+          .slice(0, 10)
+          .map((str, i) => (i & 1 ? colors.bgGray(str) : str))
+          .join(`\n${S_BAR}`)}\n${S_BAR_END}${S_BAR_H}${S_BAR_H}`,
+      );
+    } else {
+      // fs.writeFileSync(targetFile, outputText, 'utf8');
+    }
   } catch (err) {
     if (err instanceof Error && err.name === 'ExitPromptError') {
       const icon = getSymbol('error');

@@ -1,0 +1,6 @@
+# Turn CSS var declaration into rule for replacing original values.
+# So this: "--color-red-50: oklch(97.1% 0.013 17.38);"
+# becomes: "oklch(97.1% 0.013 17.38) => var(--color-red-50)"
+# which can then be used as a map file on other inputs.
+
+/(--[\w-]+): (oklch\([\d\.%\s]+\));/g => $2\s=> var($1)

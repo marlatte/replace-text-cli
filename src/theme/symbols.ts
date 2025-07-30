@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-/* Borrowed from the good folks at @clack/core */
+/* Borrowed from the good folks at @clack/packages/prompts/src/common.ts */
 
 import isUnicodeSupported from 'is-unicode-supported';
 import colors from 'yoctocolors';
@@ -25,7 +25,7 @@ const S_CHECKBOX_SELECTED = unicodeOr('◼', '[+]');
 const S_CHECKBOX_INACTIVE = unicodeOr('◻', '[ ]');
 const S_PASSWORD_MASK = unicodeOr('▪', '•');
 
-const S_BAR_H = unicodeOr('─', '-');
+export const S_BAR_H = unicodeOr('─', '-');
 const S_CORNER_TOP_RIGHT = unicodeOr('╮', '+');
 const S_CONNECT_LEFT = unicodeOr('├', '+');
 const S_CORNER_BOTTOM_RIGHT = unicodeOr('╯', '+');
