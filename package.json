@@ -12,7 +12,7 @@
     "coverage": "vitest run --coverage",
     "prelint": "tsc --noEmit",
     "lint": "eslint --report-unused-disable-directives",
-    "prepare": "husky",
+    "prepare": "husky < /dev/tty",
     "build": "tsup",
     "start": "node dist/cli.js",
     "dev": "tsup --watch --onSuccess \"node dist/cli.js\""
