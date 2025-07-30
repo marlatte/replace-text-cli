@@ -31,6 +31,8 @@ vol.fromNestedJSON(
       `,
       'warn.txt': '/bad-regex(/i => var(--broken)',
       'throw.txt': 'invalid-line-without-arrow',
+      'remove-text.txt': ':root { => ',
+      'rm-selectors.txt': '/^[:\\w]+ {$|^}$/gm => \n/^\\s|\\n$/gm =>',
       'arrow.txt': `
         ; => \\s=>
       `,
@@ -44,6 +46,8 @@ vol.fromNestedJSON(
         'color: Blue;\nbackground-color: green;\nborder: 1px solid red;',
       'complex.css':
         '--color-red-50: oklch(97.1% 0.013 17.38);\n--color-red-100: oklch(93.6% 0.032 17.717);\n--color-yellow-800: oklch(47.6% 0.114 61.907);',
+      'remove.css':
+        ':root {\n\t--color-red-50: oklch(97.1% 0.013 17.38);\n\t--color-red-100: oklch(93.6% 0.032 17.717);\n\t--color-yellow-800: oklch(47.6% 0.114 61.907);\n}',
     },
   },
   '/',
@@ -148,6 +152,11 @@ describe('readMapFile', () => {
     );
   });
 
+  it('parses rule with right side of arrow empty', () => {
+    const result = readMapFile('/mapFiles/remove-text.txt');
+    expect(result).toEqual([{ from: ':root {', to: '' }]);
+  });
+
   it('parses rules that contain an escaped arrow "\\=>"', () => {
     const result = readMapFile('/mapFiles/arrow.txt');
     expect(result).toEqual([{ from: ';', to: ' =>' }]);
@@ -195,7 +204,7 @@ describe('applyReplacements', () => {
     expect(result).toBe(input);
   });
 
-  it('handles regex with special replacement chars', () => {
+  it('handles regex with capture groups', () => {
     const input = 'color: blue;';
     const result = applyReplacements(input, [
       { from: /blue/, to: 'var(--$&)' }, // $& inserts matched string
@@ -211,7 +220,7 @@ describe('applyReplacements', () => {
     expect(result).toBe(input);
   });
 
-  it('applies regex replacement with capture groups', () => {
+  it('handles multi-line regex with capture groups', () => {
     const input = readFileSync('/inputFiles/complex.css', 'utf8');
     const result = applyReplacements(input, [
       { from: /(--[\w-]+): (oklch\([\d\.%\s]+\));/g, to: '$2 => var($1)' },
@@ -222,6 +231,15 @@ describe('applyReplacements', () => {
         oklch(93.6% 0.032 17.717) => var(--color-red-100)
         oklch(47.6% 0.114 61.907) => var(--color-yellow-800)"
       `);
+  });
+
+  it('removes text', () => {
+    const input = ':root {\n color: white;\n}';
+    const result = applyReplacements(input, [
+      { from: /^[:\w]+ {$|^}$/gm, to: '' }, // Removes CSS selectors
+      { from: /^\s|\n$/gm, to: '' }, // Trims whitespace
+    ]);
+    expect(result).toBe('color: white;');
   });
 });
 
@@ -247,5 +265,14 @@ describe('getOutputText', () => {
       oklch(93.6% 0.032 17.717) => var(--color-red-100)
       oklch(47.6% 0.114 61.907) => var(--color-yellow-800)"
     `);
+  });
+
+  it('reads and applies text-removal rules', () => {
+    const inFile = '/inputFiles/remove.css';
+    const mapFile = '/mapFiles/rm-selectors.txt';
+    const output = getOutputText({ inFile, mapFile });
+
+    const target = readFileSync('/inputFiles/complex.css', 'utf8');
+    expect(output).toBe(target);
   });
 });
