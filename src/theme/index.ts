@@ -1,12 +1,18 @@
-import type { SelectConfig, InputConfig, SearchConfig } from '../prompts.ts';
+import type {
+  SelectConfig,
+  InputConfig,
+  SearchConfig,
+  ConfirmConfig,
+} from '../prompts.ts';
 import { colors } from './colors.ts';
 import { S_BAR, S_BAR_END, S_STEP_ERROR, getSymbol } from './symbols.ts';
 
-export type Status = 'idle' | 'done' | 'cancel' | 'error';
+export type Status = 'idle' | 'done' | 'cancel' | 'error' | 'success';
 
 type InputTheme = InputConfig['theme'];
 type SearchTheme = SearchConfig['theme'];
 type SelectTheme = SelectConfig['theme'];
+type ConfirmTheme = ConfirmConfig['theme'];
 
 export const defaultTheme = {
   prefix: {
@@ -16,6 +22,6 @@ export const defaultTheme = {
   style: {
     error: (text: string) =>
       colors.yellow(`${S_BAR}\n${S_BAR_END}${S_STEP_ERROR} ${text}`),
-    description: (text: string) => colors.italic(colors.dim(`(${text})`)),
+    description: (text: string) => colors.dim(text),
   },
-} satisfies InputTheme | SearchTheme | SelectTheme;
+} satisfies InputTheme | SearchTheme | SelectTheme | ConfirmTheme;

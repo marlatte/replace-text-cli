@@ -27,7 +27,7 @@ const S_PASSWORD_MASK = unicodeOr('▪', '•');
 
 export const S_BAR_H = unicodeOr('─', '-');
 const S_CORNER_TOP_RIGHT = unicodeOr('╮', '+');
-const S_CONNECT_LEFT = unicodeOr('├', '+');
+export const S_CONNECT_LEFT = unicodeOr('├', '+');
 const S_CORNER_BOTTOM_RIGHT = unicodeOr('╯', '+');
 
 const S_INFO = unicodeOr('●', '•');
@@ -43,6 +43,7 @@ export const getSymbol = (status: Status, useColor = true) => {
     cancel: colors.red,
     error: colors.yellow,
     done: colors.green,
+    success: colors.green,
   }[status];
 
   const icon = {
@@ -50,6 +51,7 @@ export const getSymbol = (status: Status, useColor = true) => {
     cancel: S_STEP_CANCEL,
     error: S_STEP_ERROR,
     done: S_STEP_SUBMIT,
+    success: S_SUCCESS,
   }[status];
 
   return useColor ? color(icon) : icon;

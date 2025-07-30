@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { input, search, select } from '@inquirer/prompts';
+import { confirm, input, search, select } from '@inquirer/prompts';
 import { makeProgram } from './program.ts';
 import {
   inFileConfig,
@@ -7,17 +7,20 @@ import {
   mapFileConfig,
   overwriteConfig,
   dryRunConfig,
+  confirmOverwriteConfig,
 } from './prompts.ts';
 import {
   getSymbol,
   S_BAR,
   S_BAR_END,
   S_BAR_H,
+  S_CONNECT_LEFT,
   S_STEP_ERROR,
 } from './theme/symbols.ts';
 import { colors } from './theme/colors.ts';
 import { getOutputText } from './utils/replace.ts';
-// import fs from 'node:fs';
+import path from 'path';
+import fs from 'node:fs';
 
 const program = makeProgram();
 
@@ -42,12 +45,17 @@ async function main() {
       }
     } else {
       const overwrite = await select(overwriteConfig);
-      if (!overwrite) {
+      let confirmOverwrite = false;
+      if (overwrite) confirmOverwrite = await confirm(confirmOverwriteConfig);
+
+      if (!overwrite || !confirmOverwrite) {
         outFile = await input(outFileConfig);
       }
     }
 
-    const dryRun = options.dryRun ?? (await select(dryRunConfig));
+    // Ask if dry run only if other things are being asked
+    const ask = Object.entries(options).length < 3;
+    const dryRun = options.dryRun ?? (ask ? await select(dryRunConfig) : false);
 
     const displayArgs = [
       ...(dryRun ? ['--dry-run'] : []),
@@ -56,23 +64,33 @@ async function main() {
       ...(outFile ? [`--out=${outFile}`] : []),
     ];
 
-    console.log(`\n${dryRun ? 'Simulating:' : 'Running:'}`);
+    console.log(colors.dim(`\n${dryRun ? 'Simulating:' : 'Running:'}`));
     console.log(`replace-text ${displayArgs.join(' ')}\n`);
 
     const outputText = getOutputText({ inFile, mapFile });
     const targetFile = outFile || inFile;
-    console.log(`Writing replacements to ${colors.cyan(targetFile)}...\n`);
+    console.log(
+      `${getSymbol('done')}  Replacing text from ${colors.cyan(inFile)}\n${S_BAR}`,
+    );
+    console.log(
+      `${S_CONNECT_LEFT}${S_BAR_H} Writing to ${colors.yellow(targetFile)}\n${S_BAR}`,
+    );
 
     if (dryRun) {
       console.log(
-        `${getSymbol('done')}  ${colors.dim('Sample output:')}\n${S_BAR}\n${S_BAR}${outputText
+        `${S_CONNECT_LEFT}${S_BAR_H} ${colors.dim(colors.underline('Sample output:'))}\n${S_BAR}${outputText
           .split('\n')
           .slice(0, 10)
-          .map((str, i) => (i & 1 ? colors.bgGray(str) : str))
-          .join(`\n${S_BAR}`)}\n${S_BAR_END}${S_BAR_H}${S_BAR_H}`,
+          .join(
+            `\n${S_BAR}`,
+          )}\n${S_BAR_END}${S_BAR_H}${S_BAR_H}${getSymbol('success')}`,
       );
     } else {
-      // fs.writeFileSync(targetFile, outputText, 'utf8');
+      fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+      fs.writeFileSync(targetFile, outputText, 'utf8');
+      console.log(
+        `${S_BAR_END}${getSymbol('success')} Finished writing changes to ${colors.green(targetFile)}\n`,
+      );
     }
   } catch (err) {
     if (err instanceof Error && err.name === 'ExitPromptError') {
