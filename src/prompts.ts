@@ -9,7 +9,7 @@ export type SelectConfig = Parameters<typeof select>[0];
 export type ConfirmConfig = Parameters<typeof confirm>[0];
 
 export const inFileConfig = {
-  message: 'Where is the text to be replaced?',
+  message: 'Where is the text to modify?',
   theme: defaultTheme,
   source: getSearchResults,
   validate: (val) =>

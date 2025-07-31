@@ -58,14 +58,13 @@ async function main() {
     const dryRun = options.dryRun ?? (ask ? await select(dryRunConfig) : false);
 
     const displayArgs = [
-      ...(dryRun ? ['--dry-run'] : []),
       `--in=${inFile}`,
       `--map=${mapFile}`,
       ...(outFile ? [`--out=${outFile}`] : []),
     ];
 
-    console.log(colors.dim(`\n${dryRun ? 'Simulating:' : 'Running:'}`));
-    console.log(`replace-text ${displayArgs.join(' ')}\n`);
+    console.log(colors.dim(`\n${dryRun ? 'Simulating...' : 'Running...'}`));
+    console.log(`${colors.dim('>')} replace-text ${displayArgs.join(' ')}\n`);
 
     const outputText = getOutputText({ inFile, mapFile });
     const targetFile = outFile || inFile;
@@ -99,9 +98,9 @@ async function main() {
       process.exit(1);
     } else {
       console.error(
-        `\n${colors.red(S_STEP_ERROR)} Unexpected error:`,
-        err,
-        '\n',
+        colors.red(
+          `\n${S_STEP_ERROR} Unexpected error: ${(err as Error).message}\n`,
+        ),
       );
       process.exit(1);
     }

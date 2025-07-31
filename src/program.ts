@@ -19,13 +19,13 @@ export function makeProgram(options?: {
 
   program
     .name('replace-text')
-    .description('Replace text from a file using mapping rules')
-    .option('-i, --in <file>', 'Input file to modify')
-    .option('-m, --map <file>', 'Mapping file to use')
+    .description('Replace text from a file using a rules map.')
+    .option('-i, --in <file>', 'Input file to modify / copy')
     .option(
-      '-o, --out [file]',
-      'Where to write the result (exclude [file] to overwrite)',
+      '-m, --map <file>',
+      'Mapping file with .txt extension and arrow rules: input => output',
     )
+    .option('-o, --out [file]', 'Output file (omit value to force overwrite)')
     .option('-d, --dry-run', 'Simulate output without affecting files');
 
   return program;
