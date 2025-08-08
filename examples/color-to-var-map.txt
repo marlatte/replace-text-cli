@@ -3,6 +3,11 @@
 # becomes: "oklch(97.1% 0.013 17.38) => var(--color-red-50)"
 # which can then be used as a map file on other inputs.
 
+# Convert variable to replacement rule
 /(--[\w-]+): (oklch\([\d\.%\s]+\));/g => $2\s=> var($1)
+
+# Remove CSS selector syntax surrounding the variables (eg. :root { })
 /^[:\w]+ {$|^}$/gm =>
+
+# Trim whitespace
 /^\s|\n$/gm =>

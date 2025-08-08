@@ -2,6 +2,21 @@
 
 A text replacement command line utility with dry-run, mapping, and regex support.
 
+```css
+/* Input: */
+.error {
+  color: red;
+}
+
+/* Map rule: */
+red => var(--color-red-500)
+
+/* Output: */
+.error {
+  color: var(--color-red-500);
+}
+```
+
 ## Features
 
 - Multi-rule mapping
@@ -22,11 +37,15 @@ replace-text [options]
 
 Running the command with no options starts the interactive mode, which asks a series of questions about which files to use. Tab completion is available.
 
-- Input: path to the starting text that will be replaced, either by copy or in-place
+- Input: path to the starting text that will be replaced
 - Map: path to the list of rules mapping inputs to outputs
   - Must be a `.txt` file
   - Rules must follow the format: `input => output`
-- Output: path to where the results will be written. Users are given the option to overwrite the input file or create a new one.
+  - See more at [Map files](#map-files)
+- Output: path to where the results will be written.
+  - Users are given the option to overwrite the input file or create a new one.
+
+### Without options
 
 ```console
 $ replace-text
@@ -47,13 +66,22 @@ replace-text --in path/to/input.js
 
 This would skip the first question and use `path/to/input.js` as the input file.
 
-The `--in` and `--map` options each require a value, but with `--out`, it's optional.
+Both `--in` and `--map` require a value, but `--out` can be passed without one if you're sure you don't want a separate output file.
 
-**▲ Warning: Using `--out` with no value overwrites the input file, so use with caution ▲**
+> [!CAUTION]
+> If you use `--out` without providing a value, it will **overwrite** the input file. Use this with caution.
 
-### Dry run
+## Help
 
-Highly recommended!!
+For more information on passing options to the program, use the help option.
+
+```bash
+replace-text -h
+```
+
+## Dry run
+
+🚨 **Highly recommended** 🚨
 
 `replace-text --dry-run` (alias `-d`) prints a short sample of the output instead of writing it to a file. Either mode will print a verbose version of the command before running:
 
@@ -81,15 +109,13 @@ Simulating...
 
 Copy the command after `Simulating...` and paste it into the terminal to run the full program with the same options.
 
-### Help
-
-```bash
-replace-text -h
-```
-
 ## Map files
 
-Map files must have a `.txt` extension, and rules must have an input and an arrow. The output value is optional (if you want to remove text). Inputs can be strings or regular expressions (Regex), and `#` comments are allowed.
+Map files must have a `.txt` extension. Inline and standalone comments are marked with `#`.
+
+Map rules should follow the format: `input => output`, where `input` is the string or regex to match, and `output` is what it will be replaced with. Each rule **MUST** have an `input` value and an arrow _preceded by a space_ (` =>`) . If you want to remove text, leave the output blank.
+
+Regex patterns must be wrapped in slashes, e.g. `/<pattern>/[flags]`
 
 ### Example
 
@@ -102,6 +128,19 @@ Michael => John
 # Replace all numbers with the letter "X"
 /\d/g => X
 
-# Remove all instances of "ultimately,"
+# Remove all instances of "ultimately," case-insensitive
 /ultimately,/i =>
+
+# This is a comment
+Rjinswand => Rincewind # This is an inline comment
 ```
+
+### Escaping
+
+If you need to use an arrow (`=>`) or space (`' '`) in your string or regex rules as part of either the `input` or `output`, you'll need to escape them. For example, if you have some text you want to turn into replacement rules so you can run that through this program, meaning the `output` needs to have an arrow with a space in it, use `\s=>`.
+
+See [examples](examples/color-to-var-map.txt) for more.
+
+## Contributing
+
+Found a bug, have an idea, or want to improve the docs? Open an issue or send a PR — contributions of all sizes are welcome!
