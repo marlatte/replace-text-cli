@@ -1,6 +1,6 @@
 {
   "name": "replace-text-cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A text replacement command line utility with dry-run, mapping, and regex support.",
   "type": "module",
   "main": "dist/cli.js",
