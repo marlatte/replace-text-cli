@@ -1,9 +1,17 @@
 {
   "name": "replace-text-cli",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "A text replacement command line utility with dry-run, mapping, and regex support.",
   "type": "module",
   "main": "dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marlatte/replace-text-cli"
+  },
+  "homepage": "https://github.com/marlatte/replace-text-cli",
   "bin": {
     "replace-text": "dist/cli.js"
   },
