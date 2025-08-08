@@ -3,15 +3,15 @@
 A text replacement command line utility with dry-run, mapping, and regex support.
 
 ```css
-/* Input: */
+/* input.css */
 .error {
   color: red;
 }
 
-/* Map rule: */
+/* map.txt */
 red => var(--color-red-500)
 
-/* Output: */
+/* output.css */
 .error {
   color: var(--color-red-500);
 }
@@ -121,11 +121,9 @@ Map rules should follow the format: `input => output`, where `input` is the stri
 
 Regex patterns must be wrapped in slashes, e.g. `/<pattern>/[flags]`
 
-### Example
+### Example `map.txt`
 
 ```text title="map.txt"
-# map.txt
-
 # Replace all instances of "Michael" with "John"
 Michael => John
 
@@ -139,11 +137,51 @@ Michael => John
 Rjinswand => Rincewind # This is an inline comment
 ```
 
-### Escaping
+## Escaping
 
-If you need to use an arrow (`=>`) or space (`' '`) in your string or regex rules as part of either the `input` or `output`, you'll need to escape them. For example, if you have some text you want to turn into replacement rules so you can run that through this program, meaning the `output` needs to have an arrow with a space in it, use `\s=>`.
+If you need to use characters that have meaning in a map file, there are different ways of escaping them, depending on whether they're in the `input` or `output` side of the rule.
 
-See [examples](examples/color-to-var-map.txt) for more.
+These characters include:
+
+- An arrow `'=>'`
+- A hashtag `'#'`
+- A space character `' '`, which normally gets trimmed
+
+### Inputs
+
+Generally, anything that's an `input` can be escaped with regex. For example, if you need to replace the hashtag in `'#25'` with `'No.25'`, you would use the rule:
+
+```text
+/#/ => No.
+```
+
+### Outputs
+
+Using a reserved character in an `output` is more nuanced.
+
+#### Arrows: =>
+
+Arrows as rule delimiters need to be preceded by a space (`' =>'`) , so putting any character before it escapes that (`' \=>'`).
+
+If your `output` needs to have an arrow with a space before it, like if you're turning some text into replacement rules that can be used with this program, this rule with regex capture groups and an escaped space `\s` before the output arrow would do the trick:
+
+```js
+// input.css
+--primary: #16bedc;
+
+// map.txt
+/(--[\w-]+): (#[a-z0-9]{3,});/g => $2\s=> var($1)
+
+// output.txt
+#16bedc => var(--primary)
+```
+
+#### Hashtags: \#
+
+Inline comments require spaces to either side of the hashtag, eg. `' # '`, so the rule `'No. => #'` will work, but `'No. => # '` (with an extra space at the end) will not.
+
+> [!NOTE]
+> See more [examples in this file](examples/color-to-var-map.txt), or [check out our tests](test/utils/replace.test.ts) for edge cases. Note that tests use double escapes (`'\\s'`), while files only need singles (`'\s'`). You will probably only need singles.
 
 ## Contributing
 

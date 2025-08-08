@@ -1,14 +1,14 @@
 /* eslint-disable no-useless-escape */
-import { describe, it, expect, vi } from 'vitest';
-import {
-  applyReplacements,
-  parseMapPattern,
-  isRegexPattern,
-  readMapFile,
-  getOutputText,
-} from '../../src/utils/replace.ts';
 import { vol } from 'memfs';
 import { readFileSync } from 'node:fs';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  applyReplacements,
+  getOutputText,
+  isRegexPattern,
+  parseMapPattern,
+  readMapFile,
+} from '../../src/utils/replace.ts';
 
 vi.mock('node:fs');
 
@@ -27,7 +27,11 @@ vol.fromNestedJSON(
         # this is a comment
         /blue/gi => var(--blue)
   
-        green => var(--green)
+        green => var(--green) # this is an inline comment
+        `,
+      'hashtag.txt': `
+        num => #
+        /#/ => num.\\s
       `,
       'warn.txt': '/bad-regex(/i => var(--broken)',
       'throw.txt': 'invalid-line-without-arrow',
@@ -35,6 +39,7 @@ vol.fromNestedJSON(
       'rm-selectors.txt': '/^[:\\w]+ {$|^}$/gm => \n/^\\s|\\n$/gm =>',
       'arrow.txt': `
         ; => \\s=>
+        /=>/ => arrow
       `,
       // Parser removes first escape, so '\w' needs to be '\\w', etc.
       'complex.txt': `
@@ -133,6 +138,14 @@ describe('readMapFile', () => {
     ]);
   });
 
+  it('parses rules with the character #', () => {
+    const result = readMapFile('/mapFiles/hashtag.txt');
+    expect(result).toEqual([
+      { from: 'num', to: '#' },
+      { from: /#/, to: 'num. ' },
+    ]);
+  });
+
   it('warns and falls back on malformed regex', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -157,9 +170,12 @@ describe('readMapFile', () => {
     expect(result).toEqual([{ from: ':root {', to: '' }]);
   });
 
-  it('parses rules that contain an escaped arrow "\\=>"', () => {
+  it('parses rules that contain an arrow "=>"', () => {
     const result = readMapFile('/mapFiles/arrow.txt');
-    expect(result).toEqual([{ from: ';', to: ' =>' }]);
+    expect(result).toEqual([
+      { from: ';', to: ' =>' },
+      { from: /=>/, to: 'arrow' },
+    ]);
   });
 
   it('parses rules with capture groups', () => {

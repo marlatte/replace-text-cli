@@ -37,7 +37,7 @@ export function readMapFile(filePath: string): MappingRule[] {
       .filter((line) => line.trim() && !/^\s*#/.test(line))
       .map((line, i) => {
         // Strip inline comments
-        const [mappingPart] = line.split('#');
+        const [mappingPart] = line.split(' # ');
         const [rawFrom, ...rest] = mappingPart.split(' =>');
 
         if (!rawFrom || rest.length === 0) {
