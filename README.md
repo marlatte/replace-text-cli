@@ -107,13 +107,17 @@ Simulating...
 └──◆
 ```
 
-Copy the command after `Simulating...` and paste it into the terminal to run the full program with the same options.
+> [!TIP]
+> Copy the command after `Simulating...` and paste it into the terminal to run the full program with the same options.
 
 ## Map files
 
 Map files must have a `.txt` extension. Inline and standalone comments are marked with `#`.
 
-Map rules should follow the format: `input => output`, where `input` is the string or regex to match, and `output` is what it will be replaced with. Each rule **MUST** have an `input` value and an arrow _preceded by a space_ (` =>`) . If you want to remove text, leave the output blank.
+Map rules should follow the format: `input => output`, where `input` is the string or regex to match, and `output` is what it will be replaced with. If you want to remove text, leave the output blank.
+
+> [!IMPORTANT]
+> Each rule **MUST** have an `input` value and an arrow _preceded by a space_ (` =>`).
 
 Regex patterns must be wrapped in slashes, e.g. `/<pattern>/[flags]`
 
