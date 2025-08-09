@@ -9,5 +9,5 @@
 # Remove CSS selector syntax surrounding the variables (eg. :root { })
 /^[:\w]+ {$|^}$/gm =>
 
-# Trim whitespace
-/^\s|\n$/gm =>
+# Trim whitespace at start of line
+/^\s+/gm =>
