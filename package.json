@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/marlatte/replace-text-cli"
   },
-  "homepage": "https://github.com/marlatte/replace-text-cli",
+  "homepage": "https://github.com/marlatte/replace-text-cli#readme",
   "bin": {
     "replace-text": "dist/cli.js"
   },
