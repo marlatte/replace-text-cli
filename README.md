@@ -56,6 +56,14 @@ $ replace-text
   (Use arrow keys to reveal more choices)
 ```
 
+> [!WARNING]
+> Interactive mode looks at **_all files and folders in a directory_**, and Node is not as efficient as the shell at reading directory contents, so be careful navigating to large directories. This is especially true for relative paths like `../`. It may slow your computer significantly. **You've been warned.**
+
+Fortunately, there's a way around this:
+
+> [!TIP]
+> If you know you're using a file from a distant directory (as a rules map, for example), you're better off passing it as an option, such as `--map ~/path/to/map.txt` instead of trying to use relative paths.
+
 ### With options
 
 Passing options in the command skips the respective questions. For example:
@@ -66,7 +74,7 @@ replace-text --in path/to/input.js
 
 This would skip the first question and use `path/to/input.js` as the input file.
 
-Both `--in` and `--map` require a value, but `--out` can be passed without one if you're sure you don't want a separate output file.
+Both `--in` and `--map` require a value if used, but `--out` can be passed without one if you're sure you don't want a separate output file.
 
 > [!CAUTION]
 > If you use `--out` without providing a value, it will **overwrite** the input file. Use this with caution.
